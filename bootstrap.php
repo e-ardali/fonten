@@ -12,7 +12,11 @@ define( 'FONTEN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FONTEN_URL', plugin_dir_url( __FILE__ ) );
 
 
+require_once FONTEN_PATH . 'includes/class-fonten-fonts.php';
 require_once FONTEN_PATH . 'includes/class-fonten-admin.php';
+
+add_action( 'admin_enqueue_scripts', array( new Fonten_Admin(), 'enqueue_assets' ) );
+add_action( 'admin_post_fonten_save_font', array( new Fonten_Admin(), 'save_font' ) );
 
 add_action(
 	'admin_menu',
