@@ -10,11 +10,25 @@ defined( 'ABSPATH' ) || exit;
 final class Fonten_Fonts {
 
 	/**
+	 * Only explicit, saved consent enables Google Fonts, including on upgrades.
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled() {
+		return '1' === get_option( 'fonten_google_fonts_enabled', '0' );
+	}
+
+	/**
 	 * Fetch the public Google Fonts catalog, keeping a last successful copy.
 	 *
+	 * @param bool $request_consent Explicit consent for this catalog request only.
 	 * @return array|WP_Error
 	 */
-	public function get_catalog() {
+	public function get_catalog( $request_consent = false ) {
+		if ( ! self::is_enabled() && ! $request_consent ) {
+			return new WP_Error( 'google_fonts_disabled', __( 'Enable Google Fonts and save before choosing a font.', 'fonten' ) );
+		}
+
 		$cached = get_transient( 'fonten_google_fonts' );
 		if ( is_array( $cached ) && ! empty( $cached ) ) {
 			return $cached;

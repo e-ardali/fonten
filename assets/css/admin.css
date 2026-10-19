@@ -26,5 +26,5 @@ body.wp-admin,
 .wp-admin .media-modal textarea,
 .wp-admin .media-modal select,
 .wp-admin .media-modal button {
-  font-family: var(--fonten-admin-font, "Estedad"), sans-serif !important;
+  font-family: var(--fonten-admin-font, sans-serif) !important;
 }

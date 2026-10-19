@@ -16,3 +16,5 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/bootstrap.php';
+
+register_deactivation_hook( __FILE__, array( 'Fonten_Cleanup', 'deactivate' ) );
