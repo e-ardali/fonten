@@ -3,8 +3,12 @@ Tags: admin, typography, fonts, google fonts
 Requires at least: 6.0
 Requires PHP: 7.4
 Stable tag: 0.1.0
+Contributors: erak127
+Author: Ehsan
+Tested up to: 7.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
 
 Customize WordPress admin typography using Google Fonts only.
 
