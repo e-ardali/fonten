@@ -15,6 +15,7 @@ RELEASE_FILES = (
     "includes/class-fonten-admin.php",
     "includes/class-fonten-cleanup.php",
     "includes/class-fonten-fonts.php",
+    "includes/class-fonten-filesystem.php",
     "views/settings-page.php",
     "assets/css/admin.css",
     "assets/js/settings.js",

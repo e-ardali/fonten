@@ -72,12 +72,20 @@ final class Fonten_Cleanup {
 			return;
 		}
 
-		foreach ( glob( $directory . '/admin-*' ) ?: array() as $file ) {
-			if ( preg_match( '/^admin-[a-f0-9]{64}\.css(?:\.[a-zA-Z0-9]{12}\.tmp)?$/D', basename( $file ) ) && ! is_dir( $file ) ) {
-				wp_delete_file( $file );
+		$filesystem = Fonten_Filesystem::local();
+		$files      = $filesystem->dirlist( $directory, true, false );
+		if ( false === $files ) {
+			return;
+		}
+		foreach ( array_keys( $files ) as $name ) {
+			$file = trailingslashit( $directory ) . $name;
+			if ( preg_match( '/^admin-[a-f0-9]{64}\.css(?:\.[a-zA-Z0-9]{12}\.tmp)?$/D', $name ) && ! is_link( $file ) && $filesystem->is_file( $file ) ) {
+				$filesystem->delete( $file, false, 'f' );
 			}
 		}
 		// Remove the dedicated directory only when empty; leave unrelated files alone.
-		@rmdir( $directory );
+		if ( ! is_link( $directory ) && array() === $filesystem->dirlist( $directory, true, false ) ) {
+			$filesystem->delete( $directory, false, 'd' );
+		}
 	}
 }

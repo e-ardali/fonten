@@ -12,6 +12,7 @@ define( 'FONTEN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FONTEN_URL', plugin_dir_url( __FILE__ ) );
 
 
+require_once FONTEN_PATH . 'includes/class-fonten-filesystem.php';
 require_once FONTEN_PATH . 'includes/class-fonten-fonts.php';
 require_once FONTEN_PATH . 'includes/class-fonten-cleanup.php';
 require_once FONTEN_PATH . 'includes/class-fonten-admin.php';

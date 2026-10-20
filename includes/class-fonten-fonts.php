@@ -121,9 +121,10 @@ final class Fonten_Fonts {
 			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Check that the uploads directory is writable.', 'fonten' ) );
 		}
 
-		$directory = trailingslashit( $uploads['basedir'] ) . 'fonten';
-		$template  = file_get_contents( FONTEN_PATH . 'assets/css/admin.css' );
-		if ( false === $template || ! wp_mkdir_p( $directory ) ) {
+		$filesystem = Fonten_Filesystem::local();
+		$directory  = trailingslashit( $uploads['basedir'] ) . 'fonten';
+		$template   = $filesystem->get_contents( FONTEN_PATH . 'assets/css/admin.css' );
+		if ( false === $template || is_link( $directory ) || ! wp_mkdir_p( $directory ) || ! $filesystem->is_writable( $directory ) ) {
 			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Check that the uploads directory is writable.', 'fonten' ) );
 		}
 
@@ -135,12 +136,31 @@ final class Fonten_Fonts {
 		// Content-based names prevent stale browser caches and preserve the old file on failure.
 		$filename  = 'admin-' . hash( 'sha256', $css ) . '.css';
 		$path      = trailingslashit( $directory ) . $filename;
-		$temporary = $path . '.' . wp_generate_password( 12, false, false ) . '.tmp';
-		if ( strlen( $css ) !== @file_put_contents( $temporary, $css, LOCK_EX ) || ! @rename( $temporary, $path ) ) {
-			if ( is_file( $temporary ) ) {
-				@unlink( $temporary );
+		if ( is_link( $path ) ) {
+			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Your current font has not changed.', 'fonten' ) );
+		}
+		// Reuse identical content without overwriting a file that may already be active.
+		if ( $filesystem->exists( $path ) ) {
+			if ( $filesystem->get_contents( $path ) === $css ) {
+				return array( 'family' => $family, 'file' => $filename );
 			}
 			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Your current font has not changed.', 'fonten' ) );
+		}
+		$temporary = $path . '.' . wp_generate_password( 12, false, false ) . '.tmp';
+		// Never follow an existing temporary symlink or overwrite an existing destination.
+		if ( is_link( $temporary ) || $filesystem->exists( $temporary ) ) {
+			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Your current font has not changed.', 'fonten' ) );
+		}
+		$mode = defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644;
+		if ( ! $filesystem->put_contents( $temporary, $css, $mode )
+			|| $filesystem->get_contents( $temporary ) !== $css
+			|| ! $filesystem->move( $temporary, $path, false ) ) {
+			$filesystem->delete( $temporary, false, 'f' );
+			return new WP_Error( 'css_write_failed', __( 'The CSS file could not be created. Your current font has not changed.', 'fonten' ) );
+		}
+		// The move implementation may fall back to copying; retry removal of its temporary source.
+		if ( $filesystem->exists( $temporary ) ) {
+			$filesystem->delete( $temporary, false, 'f' );
 		}
 
 		return array( 'family' => $family, 'file' => $filename );

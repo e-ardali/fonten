@@ -29,6 +29,37 @@ class WP_Error {
     function get_error_code() { return $this->code; }
     function get_error_message() { return $this->message; }
 }
+// Model WordPress filesystem failures without relying on the test user's permissions.
+class WP_Filesystem_Direct {
+    function __construct($args) {}
+    function get_contents($path) { return @file_get_contents($path); }
+    function exists($path) { return file_exists($path); }
+    function is_file($path) { return is_file($path); }
+    function is_writable($path) { return empty($GLOBALS['fs_unwritable']) && is_writable($path); }
+    function put_contents($path, $content, $mode = false) {
+        if (!empty($GLOBALS['fs_write_fail'])) { file_put_contents($path, 'partial'); return false; }
+        return file_put_contents($path, $content) === strlen($content);
+    }
+    function move($source, $destination, $overwrite = false) {
+        check(!$overwrite, 'Stylesheet move never overwrites an existing destination');
+        if (!empty($GLOBALS['fs_move_fail'])) { return false; }
+        if (file_exists($destination)) { return false; }
+        return rename($source, $destination);
+    }
+    function delete($path, $recursive = false, $type = false) {
+        check(!$recursive, 'Filesystem deletion is never recursive');
+        if (!empty($GLOBALS['fs_delete_fail'])) { return false; }
+        return $type === 'd' ? @rmdir($path) : @unlink($path);
+    }
+    function dirlist($path, $hidden = true, $recursive = false) {
+        check($hidden && !$recursive, 'Directory listing includes hidden files without recursion');
+        if (!empty($GLOBALS['fs_list_fail'])) { return false; }
+        $entries = @scandir($path);
+        return $entries === false ? false : array_fill_keys(array_diff($entries, ['.', '..']), []);
+    }
+}
+function request_filesystem_credentials() { throw new RuntimeException('FTP credentials must never be requested'); }
+function WP_Filesystem() { throw new RuntimeException('Global FTP filesystem must never be initialized'); }
 class Redirected extends Exception {}
 class JsonResult extends Exception {
     public $success; public $data; public $status;
@@ -173,6 +204,20 @@ try {
     $upload_error = 'unwritable';
     check(strpos(save('Estedad'), 'css_write_failed') !== false && get_option('fonten_settings') === $settings && file_get_contents($path) === $css, 'Write errors preserve previous settings and CSS');
     $upload_error = false;
+    foreach (['fs_write_fail', 'fs_move_fail', 'fs_unwritable'] as $failure) {
+        $GLOBALS[$failure] = true;
+        check(strpos(save('Estedad'), 'css_write_failed') !== false && get_option('fonten_settings') === $settings && file_get_contents($path) === $css, "$failure preserves the previous selection and stylesheet");
+        check(!glob($upload_root . '/fonten/*.tmp'), "$failure leaves no temporary files");
+        $GLOBALS[$failure] = false;
+    }
+    check(strpos(save('Roboto'), 'fonten_status=saved') !== false && file_get_contents($path) === $css, 'Saving the same font reuses the existing stylesheet');
+    $_GET = ['fonten_status' => '<script>alert(1)</script>'];
+    $before_notice = $options;
+    $html = render_page();
+    check(strpos($html, '<script>alert(1)</script>') === false && $options === $before_notice, 'Unknown notice status is ignored and cannot change settings');
+    $_GET = ['fonten_status' => 'saved'];
+    check(strpos(render_page(), 'Font saved and a new CSS file generated.') !== false && $options === $before_notice, 'Allowlisted notice is display-only');
+    $_GET = [];
 
     $allowed = false;
     try { save('', false); throw new Exception('access allowed'); } catch (RuntimeException $e) { check($e->getMessage() === 'access rejected' && Fonten_Fonts::is_enabled(), 'Unauthorized users cannot change consent'); }
@@ -222,7 +267,24 @@ try {
     check($options === ['unrelated_option' => 'keep'] && !$transients, 'Deactivation deletes consent, settings, backup, transient value and timeout, and object cache');
     check(!file_exists($path) && !file_exists($temporary) && !file_exists($upload_root . '/fonten/' . $legacy_file), 'Deactivation removes current, old, and unfinished generated CSS');
     check(file_exists($unrelated) && $requests === $before_cleanup, 'Cleanup preserves unrelated files and makes no external requests');
+    $hidden = $upload_root . '/fonten/.keep';
+    file_put_contents($hidden, 'hidden unrelated file');
+    $nested = $upload_root . '/fonten/nested';
+    mkdir($nested);
+    file_put_contents($nested . '/keep.txt', 'keep nested file');
+    $cleanup(false);
+    check(is_file($hidden) && is_file($nested . '/keep.txt'), 'Cleanup preserves hidden files and nested directories');
+    unlink($hidden);
+    unlink($nested . '/keep.txt');
+    rmdir($nested);
     unlink($unrelated);
+    foreach (['fs_list_fail', 'fs_delete_fail'] as $failure) {
+        file_put_contents($path, $css);
+        $GLOBALS[$failure] = true;
+        $cleanup(false);
+        check(is_file($path) && is_dir(dirname($path)), "$failure leaves inaccessible files safely without FTP prompts or fatal errors");
+        $GLOBALS[$failure] = false;
+    }
     $cleanup(false);
     check(!is_dir($upload_root . '/fonten'), 'Repeated cleanup is safe and removes the empty Fonten directory');
     $styles = [];
@@ -233,7 +295,20 @@ try {
     wp_mkdir_p($upload_root . '/outside');
     $outside = $upload_root . '/outside/' . $legacy_file;
     file_put_contents($outside, 'keep outside file');
+    wp_mkdir_p($upload_root . '/fonten');
+    symlink($outside, $upload_root . '/fonten/' . $legacy_file);
+    $cleanup(false);
+    check(is_link($upload_root . '/fonten/' . $legacy_file) && file_get_contents($outside) === 'keep outside file', 'Cleanup preserves matching file symlinks and their targets');
+    $options['fonten_google_fonts_enabled'] = '1';
+    $transients['fonten_google_fonts'] = ['Roboto' => ['axis' => 'wght', 'weights' => [400, 700]]];
+    // Use the known generated filename as a symlink destination.
+    symlink($outside, $path);
+    check(is_wp_error($fonts->generate_stylesheet('Roboto')) && file_get_contents($outside) === 'keep outside file', 'Generation rejects a symlink destination without modifying its target');
+    unlink($path);
+    unlink($upload_root . '/fonten/' . $legacy_file);
+    rmdir($upload_root . '/fonten');
     symlink($upload_root . '/outside', $upload_root . '/fonten');
+    check(is_wp_error($fonts->generate_stylesheet('Roboto')) && file_get_contents($outside) === 'keep outside file', 'Generation rejects a symlinked output directory');
     $cleanup(false);
     check(is_file($outside), 'Cleanup does not follow a symlinked Fonten directory');
     unlink($upload_root . '/fonten');

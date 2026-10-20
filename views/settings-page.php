@@ -37,8 +37,8 @@ defined( 'ABSPATH' ) || exit;
 					<select id="fonten-family" name="fonten_family" <?php disabled( ! $enabled ); ?> aria-describedby="fonten-family-description">
 						<option value="" <?php selected( is_wp_error( $fonts ) || ! isset( $fonts[ $current_family ] ) ); ?>><?php esc_html_e( 'Select a font', 'fonten' ); ?></option>
 						<?php if ( ! is_wp_error( $fonts ) ) : ?>
-							<?php foreach ( array_keys( $fonts ) as $family ) : ?>
-								<option value="<?php echo esc_attr( $family ); ?>" <?php selected( $current_family, $family ); ?>><?php echo esc_html( $family ); ?></option>
+							<?php foreach ( array_keys( $fonts ) as $fonten_family ) : ?>
+								<option value="<?php echo esc_attr( $fonten_family ); ?>" <?php selected( $current_family, $fonten_family ); ?>><?php echo esc_html( $fonten_family ); ?></option>
 							<?php endforeach; ?>
 						<?php endif; ?>
 					</select>

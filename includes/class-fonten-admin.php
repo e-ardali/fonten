@@ -39,7 +39,7 @@ final class Fonten_Admin {
 		if ( is_string( $filename ) && preg_match( '/^admin-[a-f0-9]{64}\.css$/D', $filename ) ) {
 			$uploads = wp_upload_dir( null, false );
 			if ( empty( $uploads['error'] ) && is_file( trailingslashit( $uploads['basedir'] ) . 'fonten/' . $filename ) ) {
-				wp_enqueue_style( 'fonten-admin', trailingslashit( $uploads['baseurl'] ) . 'fonten/' . $filename, array(), null );
+				wp_enqueue_style( 'fonten-admin', trailingslashit( $uploads['baseurl'] ) . 'fonten/' . $filename, array(), FONTEN_VERSION );
 				return;
 			}
 		}
@@ -138,8 +138,11 @@ final class Fonten_Admin {
 		$fonts          = $enabled ? ( new Fonten_Fonts() )->get_catalog() : ( is_array( $cached_fonts ) ? $cached_fonts : array() );
 		$settings       = get_option( 'fonten_settings', array() );
 		$current_family = $settings['family'] ?? '';
+		// Display only: this sanitized key selects an escaped message from $messages; it never changes state.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- No action is performed by this notice query parameter.
 		$status         = isset( $_GET['fonten_status'] ) && is_string( $_GET['fonten_status'] )
 			? sanitize_key( wp_unslash( $_GET['fonten_status'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		$messages       = array(
 			'enabled'             => __( 'Google Fonts enabled. You can now select and save an admin font.', 'fonten' ),
 			'disabled'            => __( 'Google Fonts disabled. The default WordPress font is restored.', 'fonten' ),
