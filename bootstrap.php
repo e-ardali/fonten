@@ -27,8 +27,8 @@ add_action(
 		$admin = new Fonten_Admin();
 
 		add_options_page(
-			__( 'Fonten Settings', 'fonten' ),
-			__( 'Fonten', 'fonten' ),
+			__( 'FontenDev Settings', 'fonten' ),
+			__( 'FontenDev', 'fonten' ),
 			'manage_options',
 			'fonten',
 			array( $admin, 'render_settings_page' )

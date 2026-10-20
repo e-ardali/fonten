@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 						<input type="checkbox" id="fonten-google-fonts-enabled" name="fonten_google_fonts_enabled" value="1" <?php checked( $enabled ); ?> aria-describedby="fonten-google-fonts-description">
 						<?php esc_html_e( 'Enable Google Fonts', 'fonten' ); ?>
 					</label>
-					<p class="description" id="fonten-google-fonts-description"><?php esc_html_e( 'Checking this option immediately connects your server to Google to retrieve the font catalog. Saving enables Google Fonts across the dashboard and lets your browser connect to Google to load the selected font. Leave it disabled to use the default WordPress font without Google requests from Fonten.', 'fonten' ); ?></p>
+					<p class="description" id="fonten-google-fonts-description"><?php esc_html_e( 'Checking this option immediately connects your server to Google to retrieve the font catalog. Saving enables Google Fonts across the dashboard and lets your browser connect to Google to load the selected font. Leave it disabled to use the default WordPress font without Google requests from FontenDev.', 'fonten' ); ?></p>
 					<p class="description">
 						<a href="https://developers.google.com/fonts/terms" rel="noreferrer"><?php esc_html_e( 'Google Fonts Terms of Service', 'fonten' ); ?></a>
 						&middot;

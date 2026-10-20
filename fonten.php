@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Fonten
+ * Plugin Name: FontenDev
  * Description: Customize the WordPress admin dashboard typography using Google Fonts.
  * Version: 0.1.0
  * Requires at least: 6.0
